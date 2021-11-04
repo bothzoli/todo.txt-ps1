@@ -16,54 +16,55 @@ function ConvertTo-TodoObject {
     } elseif ($Matches.FirstDate) {
         $creationDate = $Matches.FirstDate
     }
-    
+        
     $todoObject = @{
         Id = $TodoId
         Text = $Text
+        Done = [bool]$Matches.Done
+        Priority = $Matches.Priority
         CreationDate = $creationDate
         CompletionDate = $completionDate
         Contexts = @()
         Projects = @()
+        KeyValues = @()
         FormattedText = ""
-        Priority = $Matches.Priority
-        Done = [bool]$Matches.Done
     }
 
     if ($todoObject.Done) {
-        $formattedText = Add-ForegroundColor -Color DarkGray -Text $Text
+        $todoObject.FormattedText = Add-ForegroundColor -Color DarkGray -Text $Text
     } else {
-        $formattedText = $Text.Split(' ') |
+        $todoObject.FormattedText = $Text.Split(' ') |
         ForEach-Object {
             if ($_ -match '^@\S+') {
                 $formatted = Add-ForegroundColor -Color Green -Text $_
                 $todoObject.Contexts += $_
             } elseif ($_ -match '^\+\S+') {
-                $formatted = Add-ForegroundColor -Color Red -Text $_
+                $formatted = Add-ForegroundColor -Color DarkBlue -Text $_
                 $todoObject.Projects += $_
             } elseif ($_ -match '^\S+:\S+') {
-                $formatted = Add-ForegroundColor -Color DarkBlue -Text $_
+                $formatted = Add-ForegroundColor -Color Magenta -Text $_
+                $todoObject.KeyValues += $_
             } elseif ($_ -match '^(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])') {
-                $formatted = Add-ForegroundColor -Color DarkCyan -Text $_
-            } elseif ($_ -match '^\((?<Priority>[A-Z])\)') {
-                if ("A" -eq $Matches.Priority) {
-                    $formatted = Add-ForegroundColor -Color Red -Text $_
-                } elseif ("B" -eq $Matches.Priority) {
-                    $formatted = Add-ForegroundColor -Color DarkRed -Text $_
-                } elseif ("C" -eq $Matches.Priority) {
-                    $formatted = Add-ForegroundColor -Color Yellow -Text $_
-                } elseif ("D" -eq $Matches.Priority) {
-                    $formatted = Add-ForegroundColor -Color Blue -Text $_
+                $formatted = Add-ForegroundColor -Color Cyan -Text $_
+            } elseif ($_ -match '^\([A-Z]\)') {
+                if ("A" -eq $todoObject.Priority) {
+                    $priorityColor = [AnsiColors]::DarkRed
+                } elseif ("B" -eq $todoObject.Priority) {
+                    $priorityColor = [AnsiColors]::Red
+                } elseif ("C" -eq $todoObject.Priority) {
+                    $priorityColor = [AnsiColors]::Yellow
+                } elseif ("D" -eq $todoObject.Priority) {
+                    $priorityColor = [AnsiColors]::Blue
                 } else {
-                    $formatted = $_
+                    $priorityColor = [AnsiColors]::LightGray
                 }
+                $formatted = Add-ForegroundColor -Color $priorityColor -Text $_
             } else {
                 $formatted = $_
             }
             $formatted
         } | Join-String -Separator ' '
     }
-    
-    $todoObject.FormattedText = $formattedText
 
     $todoObject
 }
