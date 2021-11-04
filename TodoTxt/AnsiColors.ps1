@@ -21,18 +21,32 @@ function Add-BackgroundColor {
     param (
         [Parameter(ValueFromPipeline)]
         [string]$Text,
-        [AnsiColors]$Color
+        [AnsiColors]$Color,
+        [Parameter(Mandatory=$false)]
+        [AnsiColors]$AfterColor
     )
     $colorCode = [int]$Color
-    "`e[48;5;$($ColorCode)m$Text`e[0m"
+    if (!$AfterColor) {
+        "`e[48;5;$($colorCode)m$Text`e[0m"
+    } else {
+        $afterColorCode = [int]$AfterColor
+        "`e[48;5;$($colorCode)m$Text`e[48;5;$($afterColorCode)m"
+    }
 }
 
 function Add-ForegroundColor {
     param (
         [Parameter(ValueFromPipeline)]
         [string]$Text,
-        [AnsiColors]$Color
+        [AnsiColors]$Color,
+        [Parameter(Mandatory=$false)]
+        [AnsiColors]$AfterColor
     )
     $colorCode = [int]$Color
-    "`e[38;5;$($ColorCode)m$Text`e[0m"
+    if (!$AfterColor) {
+        "`e[38;5;$($colorCode)m$Text`e[0m"
+    } else {
+        $afterColorCode = [int]$AfterColor
+        "`e[38;5;$($colorCode)m$Text`e[38;5;$($afterColorCode)m"
+    }
 }
