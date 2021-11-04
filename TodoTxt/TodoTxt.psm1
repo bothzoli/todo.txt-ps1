@@ -126,7 +126,11 @@ function Optimize-TodoTxt {
     (Get-Content $HOME\todo.txt | Where-Object { $_.StartsWith('x ') }) + (Get-Content $HOME\done.txt) |
         Set-Content $HOME\done.txt
     $activeTasks = Get-Content $HOME\todo.txt | Where-Object { !$_.StartsWith('x ') }
-    $activeTasks | Set-Content $HOME\todo.txt
+    if ($null -ne $activeTasks) {
+        $activeTasks | Set-Content $HOME\todo.txt
+    } else {
+        Set-Content $HOME\todo.txt $null
+    }
 }
 
 function Set-TodoTxtPriority {
@@ -173,19 +177,21 @@ function Set-TodoTxtPriority {
 function Reset-TodoTxtPriority {
     param (
         [Parameter(ValueFromPipeline)]
-        [int]$TodoId
+        [int[]]$TodoIds
     )
 
     $todoList = Get-Content $HOME\todo.txt
-    if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
-        $todoToChange = $todoList[$TodoId - 1]
-
-        if ($todoToChange -cmatch "^\((?<Priority>[A-Z])\) ") {
-            $todoToChange = $todoToChange -replace "^\([A-Z]\) ", ""
+    $TodoIds | ForEach-Object {
+        if (($_ -gt 0) -and ($_ -le $todoList.Count)) {
+            $todoToChange = $todoList[$_ - 1]
+    
+            if ($todoToChange -cmatch "^\((?<Priority>[A-Z])\) ") {
+                $todoToChange = $todoToChange -replace "^\([A-Z]\) ", ""
+            }
+            $todoList[$_ - 1] = $todoToChange
         }
-        $todoList[$TodoId - 1] = $todoToChange
-        $todoList | Set-Content $HOME\todo.txt
     }
+    $todoList | Set-Content $HOME\todo.txt
 }
 
 Export-ModuleMember -Function Show-TodoTxt
