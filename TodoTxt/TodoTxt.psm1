@@ -6,7 +6,7 @@ function ConvertTo-TodoObject {
         [string]$Text
     )
 
-    $Text -match "^(?<Done>x )?(\((?<Priority>[A-Z])\) )?(?<FirstDate>(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) )?((?<SecondDate>(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])))?" | Out-Null
+    $Text -cmatch "^(?<Done>x )?(\((?<Priority>[A-Z])\) )?(?<FirstDate>(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1]) )?((?<SecondDate>(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])))?" | Out-Null
 
     if ($Matches.FirstDate -and $Matches.SecondDate) {
         $completionDate = $Matches.FirstDate
@@ -35,18 +35,18 @@ function ConvertTo-TodoObject {
     } else {
         $todoObject.FormattedText = $Text.Split(' ') |
         ForEach-Object {
-            if ($_ -match '^@\S+') {
+            if ($_ -cmatch '^@\S+') {
                 $formatted = Add-ForegroundColor -Color Green -Text $_
                 $todoObject.Contexts += $_
-            } elseif ($_ -match '^\+\S+') {
+            } elseif ($_ -cmatch '^\+\S+') {
                 $formatted = Add-ForegroundColor -Color DarkBlue -Text $_
                 $todoObject.Projects += $_
-            } elseif ($_ -match '^\S+:\S+') {
+            } elseif ($_ -cmatch '^\S+:\S+') {
                 $formatted = Add-ForegroundColor -Color Magenta -Text $_
                 $todoObject.KeyValues += $_
-            } elseif ($_ -match '^(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])') {
+            } elseif ($_ -cmatch '^(19\d\d|20\d\d)-(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])') {
                 $formatted = Add-ForegroundColor -Color Cyan -Text $_
-            } elseif ($_ -match '^\([A-Z]\)') {
+            } elseif ($_ -cmatch '^\([A-Z]\)') {
                 if ("A" -eq $todoObject.Priority) {
                     $priorityColor = [AnsiColors]::DarkRed
                 } elseif ("B" -eq $todoObject.Priority) {
@@ -95,10 +95,88 @@ function Complete-TodoTxt {
     if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
         if (-not $todoList[$TodoId - 1].StartsWith("x ")) {
             $todoList[$TodoId - 1] = "x $(Get-Date -Format 'yyyy-MM-dd') $($todoList[$TodoId - 1])"
-            $todoList | Set-Content -Path $HOME\todo.txt
+            $todoList | Set-Content $HOME\todo.txt
         }
+    }
+}
+
+function Add-TodoTxt {
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string]$TodoText
+    )
+    (Get-Content $HOME\todo.txt) + $TodoText | Set-Content $HOME\todo.txt
+}
+
+function Optimize-TodoTxt {
+    (Get-Content $HOME\todo.txt | Where-Object { $_.StartsWith('x ') }) + (Get-Content $HOME\done.txt) |
+        Set-Content $HOME\done.txt
+    $activeTasks = Get-Content $HOME\todo.txt | Where-Object { !$_.StartsWith('x ') }
+    $activeTasks | Set-Content $HOME\todo.txt
+}
+
+function Set-TodoTxtPriority {
+    param (
+        [Parameter(ValueFromPipeline)]
+        [int]$TodoId,
+        [Parameter(Mandatory=$false)]
+        [char]$NewPriority
+    )
+
+    $newPriority = ([string]$NewPriority).ToUpper()
+
+    $todoList = Get-Content $HOME\todo.txt
+    if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
+        $todoToChange = $todoList[$TodoId - 1]
+
+        $hasPriority = $todoToChange -cmatch "^\((?<Priority>[A-Z])\) "
+        
+        if ($newPriority -and ($newPriority -cmatch "[A-Z]")) {
+            if ($hasPriority) {
+                $todoToChange = $todoToChange -replace "^\([A-Z]\) ", "($newPriority) "
+            } else {
+                $todoToChange = "($newPriority) $todoToChange"
+            }
+        } elseif (!$newPriority) {
+            if ($hasPriority) {
+                $priority = [byte][char]$Matches.Priority
+                if ($priority -gt 65) {
+                    $bumpedPriority = [char]([byte][char]$Matches.Priority - 1)
+                } else {
+                    $bumpedPriority = $Matches.Priority
+                }
+
+                $todoToChange = $todoToChange -replace "^\([A-Z]\) ", "($bumpedPriority) "
+            } else {
+                $todoToChange = "(A) $todoToChange"
+            }
+        }
+        $todoList[$TodoId - 1] = $todoToChange
+        $todoList | Set-Content $HOME\todo.txt
+    }
+}
+
+function Reset-TodoTxtPriority {
+    param (
+        [Parameter(ValueFromPipeline)]
+        [int]$TodoId
+    )
+
+    $todoList = Get-Content $HOME\todo.txt
+    if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
+        $todoToChange = $todoList[$TodoId - 1]
+
+        if ($todoToChange -cmatch "^\((?<Priority>[A-Z])\) ") {
+            $todoToChange = $todoToChange -replace "^\([A-Z]\) ", ""
+        }
+        $todoList[$TodoId - 1] = $todoToChange
+        $todoList | Set-Content $HOME\todo.txt
     }
 }
 
 Export-ModuleMember -Function Show-TodoTxt
 Export-ModuleMember -Function Complete-TodoTxt
+Export-ModuleMember -Function Add-TodoTxt
+Export-ModuleMember -Function Optimize-TodoTxt
+Export-ModuleMember -Function Set-TodoTxtPriority
+Export-ModuleMember -Function Reset-TodoTxtPriority
