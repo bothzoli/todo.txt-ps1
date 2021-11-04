@@ -86,4 +86,19 @@ function Show-TodoTxt {
         }
 }
 
+function Complete-TodoTxt {
+    param (
+        [Parameter(ValueFromPipeline)]
+        [int]$TodoId
+    )
+    $todoList = Get-Content $HOME\todo.txt
+    if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
+        if (-not $todoList[$TodoId - 1].StartsWith("x ")) {
+            $todoList[$TodoId - 1] = "x $(Get-Date -Format 'yyyy-MM-dd') $($todoList[$TodoId - 1])"
+            $todoList | Set-Content -Path $HOME\todo.txt
+        }
+    }
+}
+
 Export-ModuleMember -Function Show-TodoTxt
+Export-ModuleMember -Function Complete-TodoTxt
