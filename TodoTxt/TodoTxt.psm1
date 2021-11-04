@@ -89,23 +89,37 @@ function Show-TodoTxt {
 function Complete-TodoTxt {
     param (
         [Parameter(ValueFromPipeline)]
-        [int]$TodoId
+        [int[]]$TodoIds
     )
     $todoList = Get-Content $HOME\todo.txt
-    if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
-        if (-not $todoList[$TodoId - 1].StartsWith("x ")) {
-            $todoList[$TodoId - 1] = "x $(Get-Date -Format 'yyyy-MM-dd') $($todoList[$TodoId - 1])"
-            $todoList | Set-Content $HOME\todo.txt
+    $TodoIds | ForEach-Object {
+        if (($_ -gt 0) -and ($_ -le $todoList.Count)) {
+            if (-not $todoList[$_ - 1].StartsWith("x ")) {
+                $todoList[$_ - 1] = "x $(Get-Date -Format 'yyyy-MM-dd') $($todoList[$_ - 1])"
+            }
         }
     }
+    $todoList | Set-Content $HOME\todo.txt
 }
 
 function Add-TodoTxt {
     param (
         [Parameter(ValueFromPipeline)]
-        [string]$TodoText
+        [string]$TodoText,
+        [Parameter(Mandatory=$false)]
+        [char]$Priority,
+        [Parameter(Mandatory=$false)]
+        [switch]$WithDate=$false
     )
-    (Get-Content $HOME\todo.txt) + $TodoText | Set-Content $HOME\todo.txt
+
+    if ($Priority -and ($Priority -match "[A-Z]")) {
+        $prio = "($(([string]$Priority).ToUpper())) "
+    }
+    if ($WithDate) {
+        $date = "$(Get-Date -Format 'yyyy-MM-dd') "
+    }
+
+    (Get-Content $HOME\todo.txt) + "$prio$date$TodoText" | Set-Content $HOME\todo.txt
 }
 
 function Optimize-TodoTxt {
