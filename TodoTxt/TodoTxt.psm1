@@ -70,6 +70,18 @@ function ConvertTo-TodoObject {
 }
 
 function Show-TodoTxt {
+    param (
+        [Parameter(Mandatory=$false)]
+        [ValidateSet(“Id",”Text","Priority",”Projects”,"Contexts")]
+        [string]
+        $SortBy = "Text",
+        [Parameter(Mandatory=$false)]
+        [string]
+        $Context,
+        [Parameter(Mandatory=$false)]
+        [string]
+        $Project
+    )
     $lineNo = 0
     $todoList = Get-Content $HOME\todo.txt |
         ForEach-Object {
@@ -79,7 +91,27 @@ function Show-TodoTxt {
     $todoCount = $todoList.Count
     $padLength = [Math]::Floor([Math]::Log10($todoCount)) + 1
     $todoList |
-        Sort-Object -Property Id |
+        Where-Object {
+            if ($Project) {
+                $_.Projects | Where-Object { $_ -match $Project }
+            } else {
+                $true
+            }
+        } |
+        Where-Object {
+            if ($Context) {
+                $_.Contexts | Where-Object { $_ -match $Context }
+            } else {
+                $true
+            }
+        } |
+        Sort-Object -Property {
+            if ([bool]$_[$SortBy]) {
+                $_[$SortBy]
+            } else {
+                "z"
+            }
+        } -Stable |
         ForEach-Object {
             $paddedTodoId = "$($_.Id)".PadLeft($padLength)
             Write-Output "$paddedTodoId $($_.FormattedText)"
