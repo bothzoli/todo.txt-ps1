@@ -72,7 +72,7 @@ function ConvertTo-TodoObject {
 function Show-TodoTxt {
     param (
         [Parameter(Mandatory=$false)]
-        [ValidateSet(“Id",”Text","Priority",”Projects”,"Contexts")]
+        [ValidateSet("Id","Text","Priority","Projects","Contexts")]
         [string]
         $SortBy = "Text",
         [Parameter(Mandatory=$false)]
@@ -151,7 +151,15 @@ function Add-TodoTxt {
         $date = "$(Get-Date -Format 'yyyy-MM-dd') "
     }
 
-    (Get-Content $HOME\todo.txt) + "$prio$date$TodoText" | Set-Content $HOME\todo.txt
+    $todoList = Get-Content $HOME\todo.txt
+
+    if ($todoList.Count -eq 1) {
+        (Get-Content $HOME\todo.txt) + "`n$prio$date$TodoText" |
+            Set-Content $HOME\todo.txt
+    } else {
+        (Get-Content $HOME\todo.txt) + "$prio$date$TodoText" |
+            Set-Content $HOME\todo.txt
+    }
 }
 
 function Optimize-TodoTxt {
@@ -173,7 +181,9 @@ function Set-TodoTxtPriority {
         [char]$NewPriority
     )
 
-    $newPriority = ([string]$NewPriority).ToUpper()
+    if ($NewPriority) {
+        $newPriority = ([string]$NewPriority).ToUpper()
+    }
 
     $todoList = Get-Content $HOME\todo.txt
     if (($TodoId -gt 0) -and ($TodoId -le $todoList.Count)) {
