@@ -19,7 +19,7 @@ To install the module simply clone/download the source code to a folder of your 
 Then use the following command to import the module:
 
 ```powershell
-Import-Module {PATH_TO_DOWNLOADED_REPOSITORY}\TodoTxt\
+Import-Module {PATH_TO_DOWNLOADED_REPOSITORY}\TodoTxt
 ```
 
 This will add the following functions:
